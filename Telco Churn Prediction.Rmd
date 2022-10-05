@@ -1,0 +1,730 @@
+---
+title: ' TELCO CUSTOMER CHURN PREDICTION USING MACHINE LEARNING ALGORITHMS'
+author: "Precious Ebu"
+date: "6/22/2021"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#activating required libraries 
+```{r}
+
+library(tidyverse)
+library(psych)
+library(ggpubr)
+library(ggplot2)
+library(readxl)
+library(stringr)
+library(lattice)
+library(caret)
+library(randomForest)
+library(Boruta)
+library(car)
+```
+
+#Importing the dataset 
+```{r}
+telcom <- read_csv("C:\\Users\\user\\Documents\\DATALAB\\Datasets\\Telcom Dataset.csv")
+```
+
+#inspecting the dataset
+```{r}
+head(telcom)
+view(telcom)
+```
+
+#getting more insight on the dataset
+```{r}
+str(telcom) #checking the structure of the dataset
+
+glimpse(telcom) #getting a glimpse of the dataset
+
+summary(telcom) #getting a summary of the dataset
+```
+#This dataset has 7043 observations and 21 variables. Also observed the presence of NAs, wrong datatypes, NULL values. 
+
+
+#Checking unique values of each character variable
+```{r}
+unique(telcom$gender) 
+```
+
+```{r}
+unique(telcom$SeniorCitizen)
+```
+
+```{r}
+unique(telcom$Partner)  
+```
+
+```{r}
+unique(telcom$Dependents)  
+```
+
+```{r}
+unique(telcom$PhoneService)  
+```
+
+```{r}
+unique(telcom$MultipleLines)  
+```
+
+```{r}
+unique(telcom$InternetService)
+```
+
+```{r}
+unique(telcom$OnlineSecurity) 
+```
+
+```{r}
+unique(telcom$OnlineBackup) 
+```
+
+```{r}
+unique(telcom$DeviceProtection) 
+```
+
+```{r}
+unique(telcom$TechSupport) 
+```
+
+```{r}
+unique(telcom$StreamingTV) 
+```
+
+```{r}
+unique(telcom$StreamingMovies) 
+```
+
+```{r}
+unique(telcom$Contract) 
+```
+
+```{r}
+unique(telcom$PaperlessBilling) 
+```
+
+```{r}
+unique(telcom$Churn)
+```
+#Observed some variables are categorical 
+
+DATA TRANSFORMATION
+#Converting character variables to factors 
+```{r}
+
+telcom$gender <- as.factor(telcom$gender)
+telcom$SeniorCitizen <- as.factor(telcom$SeniorCitizen)
+telcom$Partner <- as.factor(telcom$Partner)
+telcom$Dependents <- as.factor(telcom$Dependents)
+telcom$PhoneService <- as.factor(telcom$PhoneService)
+telcom$MultipleLines <- as.factor(telcom$MultipleLines)
+telcom$InternetService <- as.factor(telcom$InternetService)
+telcom$OnlineSecurity <- as.factor(telcom$OnlineSecurity)
+telcom$OnlineBackup <- as.factor(telcom$OnlineBackup)
+telcom$DeviceProtection <- as.factor(telcom$DeviceProtection)
+telcom$TechSupport <- as.factor(telcom$TechSupport)
+telcom$StreamingTV <- as.factor(telcom$StreamingTV)
+telcom$StreamingMovies <- as.factor(telcom$StreamingMovies)
+telcom$Contract <- as.factor(telcom$Contract)
+telcom$PaperlessBilling <- as.factor(telcom$PaperlessBilling)
+telcom$PaymentMethod <- as.factor(telcom$PaymentMethod)
+telcom$Churn <- as.factor(telcom$Churn)
+```
+
+#confirming the datatypes conversion 
+```{r}
+str(telcom) 
+```
+
+#converting numeric column "tenure" to integer
+```{r}
+telcom$tenure <- as.integer(telcom$tenure) 
+```
+
+#confirming the datatype conversion
+```{r}
+class(telcom$tenure) 
+```
+
+DATA CLEANING
+#replacing duplicates and NULL values
+```{r}
+telcom$InternetService <-   str_replace(telcom$InternetService, 'dsl', 'DSL')
+
+telcom$Contract <- str_replace(telcom$Contract, '2 years', 'Two year')
+
+telcom$OnlineSecurity <- str_replace(telcom$OnlineSecurity, 'NO', 'No')
+
+telcom$OnlineSecurity <- str_replace(telcom$OnlineSecurity, 'No Internet Service', 'No')
+
+telcom$OnlineBackup <- str_replace(telcom$OnlineBackup, 'NO', 'No')
+
+telcom$StreamingMovies <- str_replace(telcom$StreamingMovies, 'NO', 'No')
+
+telcom$TechSupport <- str_replace(telcom$TechSupport, 'YES', 'Yes')
+
+telcom$PaymentMethod <- str_replace(telcom$PaymentMethod, 'Electronic_check', 'Electronic check')
+
+telcom[telcom == "\\"] <- NA
+
+telcom[telcom == "No internet service"] <- "No"
+
+telcom[,(15 == "NO")] <- "No"
+```
+
+#using the apply function to effect changes in desired columns
+```{r}
+apply(telcom[, 2:18], 2, function(x) unique(x))
+```
+
+#Checking for NAs (Missing values) in the dataset 
+```{r}
+which(is.na(telcom)) 
+sum(is.na(telcom)) 
+```
+
+#Checking sum of NAs in each column
+```{r}
+colSums(is.na(telcom)) 
+```
+
+#Checking the descriptive statistics of the numeric columns
+```{r}
+mean(telcom$tenure, na.rm = TRUE) 
+
+median(telcom$tenure, na.rm = TRUE) 
+
+sd(telcom$tenure, na.rm = TRUE) 
+```
+#Mean and Median do not coincide indicating that the distribution is not normal
+```{r}
+mean(telcom$MonthlyCharges, na.rm = TRUE)  
+
+median(telcom$MonthlyCharges, na.rm = TRUE) 
+
+sd(telcom$MonthlyCharges, na.rm = TRUE) 
+```
+#Mean and Median do not coincide indicating that the distribution is not normal
+```{r}
+mean(telcom$TotalCharges, na.rm = TRUE) 
+
+median(telcom$TotalCharges, na.rm = TRUE) 
+
+sd(median(telcom$TotalCharges, na.rm = TRUE)) 
+```
+#Mean and Median do not coincide indicating that the distribution is not normal
+
+REPLACING MISSING VALUES
+#replacing NAs in tenure(numeric column) with the column median
+```{r}
+telcom$tenure[is.na(telcom$tenure)] <- median(telcom$tenure, na.rm = TRUE)
+```
+
+#confirming the replacement
+```{r}
+which(is.na(telcom$tenure)) 
+```
+#replacing NAs in MonthlyCharges(numeric column) with the column mean 
+```{r}
+telcom$MonthlyCharges[is.na(telcom$MonthlyCharges)] <- mean(telcom$MonthlyCharges, na.rm = TRUE)
+```
+
+#confirming the replacement
+```{r}
+which(is.na(telcom$MonthlyCharges)) 
+```
+#replacing the missing values in Totalcharges with a constant 
+```{r}
+telcom$TotalCharges[is.na(telcom$TotalCharges)] <- 2284
+```
+
+#confirming the replacement
+```{r}
+which(is.na(telcom$TotalCharges)) 
+```
+
+#Creating tables to check for modes of the character columns
+```{r}
+table(telcom$Partner)
+table(telcom$Dependents)
+table(telcom$MultipleLines)
+table(telcom$InternetService)
+table(telcom$DeviceProtection)
+table(telcom$OnlineBackup)
+table(telcom$DeviceProtection)
+table(telcom$TechSupport)
+table(telcom$StreamingTV)
+table(telcom$StreamingMovies)
+table(telcom$Contract)
+table(telcom$PaperlessBilling)
+table(telcom$PaymentMethod)
+
+```
+
+#replacing NAs in the character columns with their respective modes
+```{r}
+telcom$Partner[is.na(telcom$Partner)] <- "No"
+telcom$Dependents[is.na(telcom$Dependents)] <- "No"
+telcom$MultipleLines[is.na(telcom$MultipleLines)] <- "No"
+telcom$InternetService[is.na(telcom$InternetService)] <- "Fiber optic"
+telcom$DeviceProtection[is.na(telcom$DeviceProtection)] <- "No"
+telcom$OnlineBackup[is.na(telcom$OnlineBackup)] <- "No"
+telcom$DeviceProtection[is.na(telcom$DeviceProtection)] <- "No"
+telcom$TechSupport[is.na(telcom$TechSupport)] <- "No"
+telcom$Contract[is.na(telcom$Contract)] <- "Month-to-month"
+telcom$StreamingTV[is.na(telcom$StreamingTV)] <- "No"
+telcom$StreamingMovies[is.na(telcom$StreamingMovies)] <- "No"
+telcom$PaperlessBilling[is.na(telcom$PaperlessBilling)] <- "Yes"
+telcom$PaymentMethod[is.na(telcom$PaymentMethod)] <- "Electronic check"
+```
+#Confirming NAs have been replaced
+```{r}
+which(is.na(telcom)) 
+colSums(is.na(telcom))
+sum(is.na(telcom)) 
+```
+
+#Checking the desciptive statistics of the dataset after replacing missing values
+```{r}
+describe(telcom) 
+```
+#No significant change observed between the statistics before replacing NAs and after.
+
+
+DETECTION OF OUTLIERS
+#detecting the presence of outliers using box plots
+```{r}
+boxplot(telcom$tenure)
+```
+#2 outliers detected
+
+```{r}
+boxplot(telcom$MonthlyCharges)
+```
+#no outliers observed
+
+```{r}
+boxplot(telcom$TotalCharges)
+```
+#no outliers observed
+
+#saving outliers into a variable
+```{r}
+outliers <- boxplot(telcom$tenure, plot = FALSE)$out 
+print(outliers) 
+```
+
+#checking the position of outliers
+```{r}
+telcom[which(telcom$tenure %in% outliers),] 
+```
+
+#dealing with outliers
+```{r}
+tenure_mean <- round(mean(telcom$tenure))
+tenure_mean
+```
+#replacing outliers in tenure with the mean
+```{r}
+telcom$tenure[c(16,4000)] <- tenure_mean 
+```
+
+#confirming outliers have been dealt with
+```{r}
+boxplot(telcom$tenure) 
+```
+
+#Data is now clean
+
+FEATURE ENGINEERING
+#engineering a new column from tenure and Monthly charges
+```{r}
+TotalChargesCal <- ((telcom$tenure)*(telcom$MonthlyCharges)) 
+```
+
+#Column binding and confirming the engineered column
+```{r}
+telcom$TotalChargesCal <- c(TotalChargesCal) 
+view(telcom) 
+```
+
+#checking the datatype for the new feature
+```{r}
+class(telcom$TotalChargesCal)
+```
+
+#getting the descriptive statistics
+```{r}
+mean(telcom$TotalChargesCal, na.rm = TRUE) 
+
+median(telcom$TotalChargesCal, na.rm = TRUE) 
+
+sd(telcom$TotalChargesCal, na.rm = TRUE) 
+```
+
+EXPLORATORY DATA ANALYSIS
+
+#Data visualization using scatter plot 
+```{r}
+plot(tenure ~ MonthlyCharges, data = telcom) 
+```
+#from the scatter plot, a cluster of values is observed showing a linear relationship between tenure and monthly charges causing both to increase simultaneously
+
+#visualizing the target variable churn using bar plot
+```{r}
+ggplot(telcom, aes(x = Churn))+ 
+  geom_bar(mapping = aes(fill=Churn)) + geom_text(aes(y=..count..-200, 
+                label = paste0(round(prop.table(..count..),4) * 100, '%')), 
+            stat = 'count', position = position_dodge(.1), size =3)
+```
+#this plot shows that only about one quarter of the sample population have churned.
+
+#data visualization using bar charts of each independent variable against the target variable "Churn"
+```{r}
+variables <-list("Partner", "Dependents", "SeniorCitizen", "InternetService", "OnlineBackup", "OnlineSecurity", "DeviceProtection", "TechSupport", "StreamingMovies", "StreamingTV", "Contract", "PaperlessBilling", "PaymentMethod") 
+plot <- list()
+
+ for (i in variables){
+ plot <-  ggplot(data = telcom, aes_string(x=i, fill = as.factor(telcom$Churn)))+
+  geom_bar(position = "stack") + 
+  geom_text(aes(y=..count..-200, 
+                label = paste0(round(prop.table(..count..),4) * 100, '%')), 
+            stat = 'count', position = position_dodge(.1), size =3)
+   print(plot)
+}
+```
+
+```{r}
+ggplot(data = telcom, aes(x=tenure, fill = Churn)) + geom_histogram(binwidth = 1.5) +labs(x= "Months", title = "Churn by tenure rate")
+```
+
+```{r}
+ggplot(data = telcom, aes(x=MonthlyCharges, fill = Churn)) + geom_histogram(binwidth = 1.5) +labs(x= "Charges", title = "Churn by Monthly Charges")
+```
+
+```{r}
+ggplot(data = telcom, aes(x=TotalCharges, fill = Churn)) + geom_histogram(binwidth = 100) +labs(x= "Amount (binwidth=100)", title = "Churn by Totalcharges")
+```
+
+```{r}
+cor(telcom$tenure, telcom$TotalChargesCal)
+```
+
+```{r}
+cor(telcom$tenure, telcom$MonthlyCharges)
+```
+the correlation coefficient is 0.24, this shows weak positive correlation exists between tenure and Monthly Charges
+```{r}
+cor(telcom$tenure, telcom$TotalCharges)
+```
+
+```{r}
+cor(telcom$MonthlyCharges, telcom$TotalCharges)
+```
+```{r}
+cor(telcom$MonthlyCharges, telcom$TotalChargesCal)
+```
+```{r}
+cor(telcom$TotalCharges, telcom$TotalChargesCal)
+```
+
+```{r}
+chisq.test(telcom$gender, telcom$Churn)
+```
+
+```{r}
+chisq.test(telcom$SeniorCitizen, telcom$Churn)
+```
+
+```{r}
+chisq.test(telcom$Partner, telcom$Churn)
+```
+
+```{r}
+chisq.test(telcom$Dependents, telcom$Churn)
+```
+
+```{r}
+chisq.test(telcom$PhoneService, telcom$Churn)
+```
+
+```{r}
+chisq.test(telcom$MultipleLines, telcom$Churn)
+```
+
+```{r}
+chisq.test(telcom$InternetService, telcom$Churn)
+```
+
+```{r}
+chisq.test(telcom$OnlineSecurity, telcom$Churn)
+```
+
+```{r}
+chisq.test(telcom$OnlineBackup, telcom$Churn)
+```
+
+```{r}
+chisq.test(telcom$DeviceProtection, telcom$Churn)
+```
+
+```{r}
+chisq.test(telcom$TechSupport, telcom$Churn)
+```
+
+```{r}
+chisq.test(telcom$StreamingTV, telcom$Churn)
+```
+
+```{r}
+chisq.test(telcom$StreamingMovies, telcom$Churn)
+```
+
+
+```{r}
+chisq.test(telcom$Contract, telcom$Churn)
+```
+
+
+```{r}
+chisq.test(telcom$PaperlessBilling, telcom$Churn)
+```
+
+
+```{r}
+chisq.test(telcom$PaymentMethod, telcom$Churn)
+```
+
+
+```{r}
+result <- aov(MonthlyCharges ~ Churn, data = telcom)
+summary(result)
+```
+
+
+```{r}
+LogRegChurn <- glm(Churn~MonthlyCharges, data = telcom, family = binomial(link = "logit"))
+```
+
+```{r}
+summary(LogRegChurn)
+```
+
+
+```{r}
+telcom1 <- data.frame(telcom[,c(-1,-20,-22)]) 
+view(telcom1)
+```
+
+#Splitting the dataset into training and testing data
+```{r}
+Churn_yes <- telcom1[which(telcom1$Churn=="Yes"),]
+Churn_no <- telcom1[which(telcom1$Churn=="No"),]
+```
+
+#creating Training data from 75% of the dataset and balancing my yes and no values
+```{r}
+set.seed(1500)
+train1 <- sample(1:nrow(Churn_yes), 0.75*nrow(Churn_yes))
+train2 <- sample(1:nrow(Churn_no), 0.75*nrow(Churn_no))
+```
+
+
+```{r}
+train_y <- Churn_yes[train1,]
+view(train_y)
+train_n <- Churn_no[train2,]
+view(train_n)
+```
+
+#row binding both partitions
+```{r}
+train_data <- rbind(train_y,train_n)
+```
+
+#shuffling the training data
+```{r}
+rows <- sample(nrow(train_data))
+train_data <- train_data[rows, ]
+```
+
+#viewing the split training data
+```{r}
+view(train_data) 
+```
+
+#creating the test data
+```{r}
+test_y <- Churn_yes[-train1,] #contains 25% of churn "yes"
+test_n <- Churn_no[-train2,] #contains 25% of churn "no"
+test_data <- rbind(test_y, test_n)
+```
+
+#Shuffling the test data
+```{r}
+rows <- sample(nrow(test_data))
+test_data <- test_data[rows, ]
+view(test_data)
+```
+
+#Viewing the split test data
+```{r}
+view(test_data)
+```
+
+#validating the proportion of splitting
+```{r}
+prop.table(table(train_data$Churn))
+prop.table(table(test_data$Churn))
+```
+
+#feature importance using Boruta
+```{r}
+boruta_output <- Boruta(Churn~., data = telcom,
+                        doTrace=2)
+print(boruta_output)
+```
+
+
+RANDOM FOREST
+#random forest classification model
+
+```{r}
+forest1 <- randomForest(Churn~., data = train_data)
+forest1
+```
+
+
+#feature importance in the random forest model
+```{r}
+randomForest::importance(forest1)
+```
+
+```{r}
+forestprediction <- predict(forest1, data = test_data[,19])
+summary(forestprediction)
+```
+
+
+#LOGISTIC REGRESSION
+
+```{r}
+Churnmodel1 <- glm( Churn~., data = train_data, family = binomial(link = "logit"))
+```
+
+```{r}
+summary(Churnmodel1)
+```
+
+FEATURE SELECTION
+
+```{r}
+Churnmodel2 <- glm(Churn~Dependents+Partner+SeniorCitizen+tenure+MultipleLines+OnlineSecurity+OnlineBackup+InternetService+TechSupport+DeviceProtection+Contract+StreamingMovies+StreamingTV+PaperlessBilling+PaymentMethod+MonthlyCharges, data = train_data, family = binomial(link = "logit"))
+```
+
+```{r}
+summary(Churnmodel2)
+```
+
+```{r}
+Churnmodel3 <- glm(Churn~gender+Partner+SeniorCitizen+Dependents+tenure+MultipleLines+InternetService+OnlineBackup+OnlineSecurity+DeviceProtection+TechSupport+Contract+PaperlessBilling+PaymentMethod+MonthlyCharges, data = train_data, family = binomial(link = "logit"))
+
+```
+
+```{r}
+summary(Churnmodel3) 
+```
+
+
+```{r}
+Churnmodel4 <- glm(Churn~Partner+Dependents+SeniorCitizen+tenure+MultipleLines+InternetService+OnlineSecurity+OnlineBackup+DeviceProtection+TechSupport+Contract+PaperlessBilling+PaymentMethod+MonthlyCharges, data = train_data, family = binomial(link = "logit"))
+```
+
+```{r}
+summary(Churnmodel4)
+```
+
+#Comparing AIC values of models
+```{r}
+Model_AIC <- data.frame(AIC(Churnmodel1),AIC(Churnmodel2),AIC(Churnmodel3),AIC(Churnmodel4))
+```
+
+```{r}
+view(Model_AIC)
+```
+
+```{r}
+anova(Churnmodel4, test = "Chisq")
+```
+
+```{r}
+car::vif(Churnmodel4)
+```
+
+#using the candidate model to predict outcomes in the test data
+```{r}
+predicted <- predict(Churnmodel4, test_data, "link")
+head(predicted)
+```
+
+#saving the result as predicted
+```{r}
+test_data$predicted <- predicted
+```
+
+#creating a new column to compare actual and predicted
+```{r}
+test_data$Churn_pred <- ifelse(predicted>0.5, "Yes", "No")
+```
+
+```{r}
+view(test_data)
+```
+
+REPEATED CROSS VALIDATION
+ 
+```{r}
+library(e1071) 
+```
+
+#repeated cross validation
+```{r}
+logChurnModel <- train(Churn~Partner+Dependents+SeniorCitizen+tenure+MultipleLines+InternetService+OnlineSecurity+OnlineBackup+DeviceProtection+TechSupport+Contract+PaperlessBilling+PaymentMethod+MonthlyCharges, data = train_data, method = "glm", family = "binomial",
+                          trControl = trainControl(method = "repeatedcv", number = 20, repeats = 10))
+```
+
+#output model from repeated cross validation
+```{r}
+logChurnModel
+summary(logChurnModel)
+```
+
+
+#Prediction using trained model against test data
+```{r}
+logChurnPrediction <- predict(logChurnModel, test_data)
+```
+
+#getting a summary statistics of the prediction
+```{r}
+summary(logChurnPrediction)
+```
+
+
+#Getting detailed statistics of PREDICTION VS ACTUAL via confusion matrix
+```{r}
+logChurnConfMat <- confusionMatrix(logChurnPrediction, test_data[,"Churn"])
+logChurnConfMat
+```
+
+```{r}
+
+```
+
