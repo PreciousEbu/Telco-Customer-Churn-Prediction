@@ -36,5 +36,21 @@ The data was explored using visualization and plots and the following insights w
 With the help of machine learning, customer churn across all industries can be predicted with high accuracy, Thus, businesses can prevent losses and retain customers.
 Different logistic regression models were built and their accuracies were as follows:
 - Random Forest - 79.44%. The confusion matrix shows that the error rate was higher when predicting “Yes” than “No”.
-- 
+- Generalized linear models: Model                 AIC value 
+                             Model 1               4378.647
+                             Model 2               4377.016
+                             Model 3               4378.121
+                             Model 4               4376.54
+- Thus, Model 4 with the lowest AIC was selected. However, when used for prediction, the results of this model was 
 
+            Accuracy : 0.7974 
+            
+            Sensitivity : 0.9575  
+            
+            Specificity : 0.3547  
+- A Cross validation was then built using model 4 which yielded the following results
+
+            Accuracy : 0.807
+            Sensitivity : 0.9104          
+            Specificity : 0.5214   
+ - Therefore, the cross validation model was selected as the candidate model based on its performance when used for prediction.
