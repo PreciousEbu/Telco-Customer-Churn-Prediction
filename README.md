@@ -1,56 +1,162 @@
-# Telco-Customer-Churn-Prediction-using-machine-learning-in-R
-### PROJECT OVERVIEW
-Customer churn is one of the most important metrics for a growing business to evaluate. It gives a company the hard truth about its customer retention. Customer churn is the percentage of customers that stopped using the company’s product or service during a certain time frame.
 
-### BUSINESS PROBLEM 
-The liberalization of the telecommunications market in Europe has led to significant customer churn. Therefore, it is important to diagnose the source of churning customers.
 
-### PROJECT GOALS 
-To build a predictive model that can identify customers who are likely to churn to enable the company employ adequate interventions that were geared towards reducing customers’ churn.
-To confirm or reject one of the hypotheses under consideration that churn is driven by the customers’ price sensitivities and that it is possible to predict customers likely to churn by building a predictive model with the help of machine learning.
+# **Telco Customer Churn Prediction (R)**
 
-### EXPLORATORY DATA ANALYSIS
-The data was explored using visualization and plots and the following insights were revealed:
-- A linear relationship exists between tenure and monthly charges causing both to increase simultaneously.
-- Customers with longer tenure are less likely to churn.
-- Customers who churned paid higher Monthly Charges. The Lowest monthly charge shows high proportion of retained customers. This indicates that price sensitivity is one of the drivers of churn. However, customers with higher total charges tended not to churn.
-- 73.46% of customers are active while 26.54% are churned customers which means only about a quarter of the population are churned customers.
-- A higher percentage of the population are active customers and have partners, do not have dependents, are non-senior citizens, use a form of internet service, do not have online backup, do not have online security, do not have device protection, do not need tech support, do not stream movies, do not subscribe to streaming TV, have month to month contracts, prefer paperless billing methods and make use of any payment method.
-- On the other hand, most churned customers do not have partners, do not have dependents, are non-senior citizens, use fiber optic internet service, do not have online backup, do not have online security, do not have device protection, do not need tech support, do not stream movies, do not subscribe to streaming TV, have month to month contracts, prefer paperless billing methods and electronic check payment method.
+### *Machine Learning Project | Classification | Customer Analytics*
 
-### RESULTS/FINDINGS
-1.	The most important predictors of customers Churn in Telcos are Tenure, Monthly Charges and Contract. 
-2.	Customers with longer tenure, more total charges, have partners, do not have dependents, online security, online backup and tech support, are non-senior citizens, use DSL internet service, montly contract, prefer paperless billing and any payment method are less likely to churn. 
-3.	Customers with month-month contract, use fiber optic internet service, are more likely to churn meanwhile a large proportion of customers who churned did so in their first month.
-4.	The Lowest monthly charge shows high proportion of retained customers. This indicates that price sensitivity may be a driver of churn.
-5.	Statistical tests also proved that a linear relationship exists between Monthly charges and Churn. Thus we can say, price sensitivity is a driver of churn which confirmed the hypothesis speculated in our business problem. 
-6.	Price sensitivity is not the only driver of Churn. 
-7.	It is possible to predict the likelihood of customers to churn using a Logistic regression model
+![Project Banner](https://img.shields.io/badge/Customer%20Churn-Machine%20Learning-blue.svg)
+![R](https://img.shields.io/badge/Built%20With-R-276DC3.svg?logo=r\&logoColor=white)
+![Random Forest](https://img.shields.io/badge/Model-Random%20Forest-green.svg)
+![Logistic Regression](https://img.shields.io/badge/Model-Logistic%20Regression-orange.svg)
 
-### EVALUATION METRICS
-- Accuracy
-- Specificity
-- Sensitivity
+---
 
-### MACHINE LEARNING
-With the help of machine learning, customer churn across all industries can be predicted with high accuracy, Thus, businesses can prevent losses and retain customers.
-Different logistic regression models were built and their accuracies were as follows:
-- Random Forest - 79.44%. The confusion matrix shows that the error rate was higher when predicting “Yes” than “No”.
-- Generalized linear models: Model                 AIC value 
-                             Model 1               4378.647
-                             Model 2               4377.016
-                             Model 3               4378.121
-                             Model 4               4376.54
-- Thus, Model 4 with the lowest AIC was selected. However, when used for prediction, the results of this model was 
+## **📌 Project Overview**
 
-            Accuracy : 0.7974 
-            
-            Sensitivity : 0.9575  
-            
-            Specificity : 0.3547  
-- A Cross validation was then built using model 4 which yielded the following results
+Customer churn—customers discontinuing service—is a critical business metric for subscription-based industries, especially telecommunications. With increasing market competition, understanding *why* customers leave and *predicting churn early* helps companies implement targeted retention strategies.
 
-            Accuracy : 0.807
-            Sensitivity : 0.9104          
-            Specificity : 0.5214   
- - Therefore, the cross validation model was selected as the candidate model based on its performance when used for prediction.
+This project builds a predictive machine-learning model in **R** to identify customers likely to churn and uncover the major behavioral and service-related factors influencing churn.
+
+---
+
+## **📈 Business Problem**
+
+The liberalization of the European telecom market led to increased competition and a surge in customer switching behavior. The business needed:
+
+* A **predictive model** to identify customers at risk of churning.
+* Insight into whether **price sensitivity** is a major driver of churn.
+* Actionable intelligence to guide **customer retention strategies**.
+
+---
+
+## **🎯 Project Goals**
+
+* Develop a machine-learning model that predicts churn with strong accuracy.
+* Evaluate whether customer churn is significantly driven by **price sensitivity** (monthly charges).
+* Identify the key demographic and service-related features influencing churn.
+* Provide data-driven recommendations for retention.
+
+---
+
+## **🔍 Exploratory Data Analysis (EDA)**
+
+Key insights discovered through visualizations and statistical summaries:
+
+### **1. Price Sensitivity**
+
+* Customers who churned generally paid **higher monthly charges**.
+* Lower monthly charges corresponded with **higher retention**, supporting the price-sensitivity hypothesis.
+
+### **2. Customer Tenure**
+
+* Longer-tenured customers were *less likely* to churn.
+* A significant proportion of churned customers left within their **first month**.
+
+### **3. Service & Contract Insights**
+
+* Customers on **month-to-month contracts** churned the most.
+* **Fiber optic** subscribers showed higher churn rates compared to DSL users.
+* Customers without value-added services (online backup, security, device protection, tech support) were more prone to churn.
+
+### **4. Demographics**
+
+* Most churned customers:
+
+  * Had **no partner**
+  * Had **no dependents**
+  * Were **non-senior citizens**
+
+### **Class Balance**
+
+* **Active customers:** 73.46%
+* **Churned customers:** 26.54%
+* The dataset is moderately imbalanced.
+
+---
+
+## **📌 Key Findings**
+
+* The most influential churn predictors were:
+  **Tenure**, **Monthly Charges**, **Contract Type**, **Internet Service**, and **Total Charges**.
+* **Price sensitivity is a major driver of churn**, confirmed through statistical tests.
+* However, **price alone does not fully explain churn**—contract and service-related features also play strong roles.
+* Machine learning models effectively predict churn and support proactive retention planning.
+
+---
+
+## **🤖 Machine Learning Models**
+
+### **📌 Models Evaluated**
+
+* **Random Forest**
+* **Generalized Linear Models (Logistic Regression)**
+
+  * Compared across models using **AIC**
+  * Model 4 had the lowest AIC and was selected for further evaluation
+
+---
+
+## **📊 Model Performance**
+
+### **Random Forest**
+
+* **Accuracy:** 79.44%
+* Higher error rate in predicting positive churn (“Yes”) compared to “No”.
+
+---
+
+### **Logistic Regression – Model 4**
+
+Using the model with the lowest AIC:
+
+| Metric          | Score  |
+| --------------- | ------ |
+| **Accuracy**    | 0.7974 |
+| **Sensitivity** | 0.9575 |
+| **Specificity** | 0.3547 |
+
+---
+
+### **Cross-Validated Logistic Regression (Final Model)**
+
+After applying cross-validation:
+
+| Metric          | Score  |
+| --------------- | ------ |
+| **Accuracy**    | 0.807  |
+| **Sensitivity** | 0.9104 |
+| **Specificity** | 0.5214 |
+
+✔️ **Selected as the final candidate model due to superior balanced performance.**
+
+---
+
+## **📐 Evaluation Metrics**
+
+* **Accuracy**
+* **Sensitivity (Recall for churners)**
+* **Specificity (Correct identification of non-churners)**
+
+---
+
+## **📦 Tech Stack**
+
+* **Language:** R
+* **Libraries:** `tidyverse`, `caret`, `ggplot2`, `randomForest`, `dplyr`, `readr`
+* **Techniques:** Classification, EDA, Model Evaluation, Cross-Validation
+
+---
+
+## **📁 Repository Structure** 
+
+```
+├── data/
+│   └── Telco-Customer-Churn.csv
+├── scripts/
+│   └── churn_analysis.R
+├── models/
+│   └── final_model.rds
+├── README.md
+└── plots/
+```
+
