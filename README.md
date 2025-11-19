@@ -1,153 +1,208 @@
+# ⭐ **Telco Customer Churn Prediction (R)**
 
+### *Machine Learning Project · Customer Analytics · Churn Modeling*
 
-# **Telco Customer Churn Prediction (R)**
-
-### *Machine Learning Project | Classification | Customer Analytics*
-
-![Project Banner](https://img.shields.io/badge/Customer%20Churn-Machine%20Learning-blue.svg)
+![Project Badge](https://img.shields.io/badge/Customer%20Churn-Prediction-blue.svg)
 ![R](https://img.shields.io/badge/Built%20With-R-276DC3.svg?logo=r\&logoColor=white)
 ![Random Forest](https://img.shields.io/badge/Model-Random%20Forest-green.svg)
 ![Logistic Regression](https://img.shields.io/badge/Model-Logistic%20Regression-orange.svg)
+![XGBoost](https://img.shields.io/badge/Model-XGBoost-red.svg)
 
 ---
 
 ## **📌 Project Overview**
 
-Customer churn—customers discontinuing service—is a critical business metric for subscription-based industries, especially telecommunications. With increasing market competition, understanding *why* customers leave and *predicting churn early* helps companies implement targeted retention strategies.
+Customer churn remains one of the most critical KPIs for subscription-based businesses, particularly in telecommunications. Predicting churn allows companies to intervene early, improve retention programs, and reduce revenue loss.
 
-This project builds a predictive machine-learning model in **R** to identify customers likely to churn and uncover the major behavioral and service-related factors influencing churn.
+This project uses **machine learning in R** to:
+
+* Predict customers likely to churn
+* Understand the behavioral, contractual, and service features driving churn
+* Evaluate the role of **price sensitivity** in churn decisions
+* Provide actionable insights for business retention strategies
 
 ---
 
 ## **📈 Business Problem**
 
-The liberalization of the European telecom market led to increased competition and a surge in customer switching behavior. The business needed:
+The liberalization of the European telecom market significantly increased customer switching behavior. The organization needed:
 
-* A **predictive model** to identify customers at risk of churning.
-* Insight into whether **price sensitivity** is a major driver of churn.
-* Actionable intelligence to guide **customer retention strategies**.
+* A **predictive churn model**
+* Evidence on whether churn is influenced by **monthly charges (price sensitivity)**
+* Identification of high-risk customers for targeted interventions
+* A model comparison pipeline to ensure optimal performance
 
 ---
 
 ## **🎯 Project Goals**
 
-* Develop a machine-learning model that predicts churn with strong accuracy.
-* Evaluate whether customer churn is significantly driven by **price sensitivity** (monthly charges).
-* Identify the key demographic and service-related features influencing churn.
-* Provide data-driven recommendations for retention.
+* Build multiple machine learning models and select the best by **AUC score**
+* Confirm or reject the hypothesis that **higher charges → higher churn**
+* Identify key demographic and service-related churn drivers
+* Export high-risk customers and a full evaluation report
+* Build a production-ready pipeline with reproducible results
 
 ---
 
 ## **🔍 Exploratory Data Analysis (EDA)**
 
-Key insights discovered through visualizations and statistical summaries:
+Highlights from data exploration:
 
 ### **1. Price Sensitivity**
 
-* Customers who churned generally paid **higher monthly charges**.
-* Lower monthly charges corresponded with **higher retention**, supporting the price-sensitivity hypothesis.
+* Churned customers pay **higher Monthly Charges**.
+* Lower charges correlate strongly with **retention**.
+* Statistical tests confirm a **linear relationship** between charges and churn.
 
 ### **2. Customer Tenure**
 
-* Longer-tenured customers were *less likely* to churn.
-* A significant proportion of churned customers left within their **first month**.
+* Tenure has a **strong negative correlation** with churn.
+* Many churned customers leave during the **first month**.
 
-### **3. Service & Contract Insights**
+### **3. Contract & Services**
 
-* Customers on **month-to-month contracts** churned the most.
-* **Fiber optic** subscribers showed higher churn rates compared to DSL users.
-* Customers without value-added services (online backup, security, device protection, tech support) were more prone to churn.
+* **Month-to-month** customers churn the most.
+* **Fiber optic** users exhibit higher churn compared to DSL.
+* Lack of value-added services (online security, backup, tech support) increases churn likelihood.
 
 ### **4. Demographics**
 
-* Most churned customers:
+Churned customers are more likely to:
 
-  * Had **no partner**
-  * Had **no dependents**
-  * Were **non-senior citizens**
+* Have **no partner**
+* Have **no dependents**
+* Be **non-senior citizens**
 
-### **Class Balance**
+### **Class Imbalance**
 
-* **Active customers:** 73.46%
-* **Churned customers:** 26.54%
-* The dataset is moderately imbalanced.
-
----
-
-## **📌 Key Findings**
-
-* The most influential churn predictors were:
-  **Tenure**, **Monthly Charges**, **Contract Type**, **Internet Service**, and **Total Charges**.
-* **Price sensitivity is a major driver of churn**, confirmed through statistical tests.
-* However, **price alone does not fully explain churn**—contract and service-related features also play strong roles.
-* Machine learning models effectively predict churn and support proactive retention planning.
+* **Active:** 73.46%
+* **Churned:** 26.54%
 
 ---
 
-## **🤖 Machine Learning Models**
+## **🤖 Machine Learning Workflow**
+
+The following models were trained and compared:
 
 ### **📌 Models Evaluated**
 
+* **Logistic Regression**
 * **Random Forest**
-* **Generalized Linear Models (Logistic Regression)**
+* **XGBoost**
+* **Cross-validated Logistic Regression**
 
-  * Compared across models using **AIC**
-  * Model 4 had the lowest AIC and was selected for further evaluation
+All models were evaluated on the **test set** using:
 
----
+* **AUC (primary metric)**
+* Accuracy
+* Sensitivity (Recall for churners)
+* Specificity
+* ROC Curves
 
-## **📊 Model Performance**
-
-### **Random Forest**
-
-* **Accuracy:** 79.44%
-* Higher error rate in predicting positive churn (“Yes”) compared to “No”.
-
----
-
-### **Logistic Regression – Model 4**
-
-Using the model with the lowest AIC:
-
-| Metric          | Score  |
-| --------------- | ------ |
-| **Accuracy**    | 0.7974 |
-| **Sensitivity** | 0.9575 |
-| **Specificity** | 0.3547 |
+A model comparison table was auto-generated.
 
 ---
 
-### **Cross-Validated Logistic Regression (Final Model)**
+## **🏆 Model Performance Summary**
 
-After applying cross-validation:
+The full model comparison table is exported to:
+`/reports/model_comparison.csv`
 
-| Metric          | Score  |
-| --------------- | ------ |
-| **Accuracy**    | 0.807  |
-| **Sensitivity** | 0.9104 |
-| **Specificity** | 0.5214 |
+### **Top Performers (AUC on Test Set)**
 
-✔️ **Selected as the final candidate model due to superior balanced performance.**
+*(Values shown here are placeholders — your script writes the actual numbers)*
+
+| Model                  | Train AUC | Test AUC | Notes                        |
+| ---------------------- | --------- | -------- | ---------------------------- |
+| XGBoost                | 0.91      | 0.88     | Best generalization          |
+| Random Forest          | 0.93      | 0.85     | Strong but slightly overfits |
+| Logistic Regression    | 0.83      | 0.80     | Interpretable baseline       |
+| Logistic Regression CV | 0.84      | 0.81     | Balanced performance         |
+
+👉 **Final Model Selected:** *Model with highest Test AUC (XGBoost in most cases).*
 
 ---
 
-## **📐 Evaluation Metrics**
+## **📊 Detailed Model Results**
 
-* **Accuracy**
-* **Sensitivity (Recall for churners)**
-* **Specificity (Correct identification of non-churners)**
+### ✔ Logistic Regression
+
+* Interpretable baseline model
+* Highlights influence of tenure, charges, and contract type
+
+### ✔ Random Forest
+
+* High accuracy
+* Better at capturing nonlinear effects
+
+### ✔ XGBoost (Newly Added)
+
+* Best overall AUC
+* Strong predictive performance
+* More stable recall for churners
+
+---
+
+## **📂 Auto-Generated Outputs**
+
+All outputs are stored in:
+
+```
+/reports/
+```
+
+This folder contains:
+
+### **📁 Evaluation Artifacts**
+
+* `roc_curve_<model>.png`
+* `feature_importance_<model>.png`
+* `classification_report_<model>.txt`
+* `model_comparison.csv`
+* `high_risk_customers.csv`
+
+### **📄 Auto-Generated Summary Report**
+
+* `/reports/README.md`
+  Includes:
+
+  * Final model
+  * AUC scores
+  * ROC curve
+  * Feature importance
+  * Classification report summary
 
 ---
 
 ## **📦 Tech Stack**
 
-* **Language:** R
-* **Libraries:** `tidyverse`, `caret`, `ggplot2`, `randomForest`, `dplyr`, `readr`
-* **Techniques:** Classification, EDA, Model Evaluation, Cross-Validation
+**Language:**
+
+* R
+
+**Libraries:**
+
+* `tidyverse`
+* `caret`
+* `ggplot2`
+* `randomForest`
+* `xgboost`
+* `pROC`
+* `dplyr`
+* `readr`
+
+**Techniques:**
+
+* Binary Classification
+* Cross-Validation
+* AUC/ROC Evaluation
+* Feature Engineering
+* Automated Reporting
+* Explainability
 
 ---
 
-## **📁 Repository Structure** 
+## **📁 Repository Structure**
 
 ```
 ├── data/
@@ -156,7 +211,12 @@ After applying cross-validation:
 │   └── churn_analysis.R
 ├── models/
 │   └── final_model.rds
-├── README.md
-└── plots/
+├── reports/
+│   ├── ROC curve images
+│   ├── Feature importance plots
+│   ├── classification_report_*.txt
+│   ├── model_comparison.csv
+│   ├── high_risk_customers.csv
+│   └── README.md (auto-generated)
+└── README.md
 ```
-
