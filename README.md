@@ -143,37 +143,6 @@ The full model comparison table is exported to:
 
 ---
 
-## **📂 Auto-Generated Outputs**
-
-All outputs are stored in:
-
-```
-/reports/
-```
-
-This folder contains:
-
-### **📁 Evaluation Artifacts**
-
-* `roc_curve_<model>.png`
-* `feature_importance_<model>.png`
-* `classification_report_<model>.txt`
-* `model_comparison.csv`
-* `high_risk_customers.csv`
-
-### **📄 Auto-Generated Summary Report**
-
-* `/reports/README.md`
-  Includes:
-
-  * Final model
-  * AUC scores
-  * ROC curve
-  * Feature importance
-  * Classification report summary
-
----
-
 ## **📦 Tech Stack**
 
 **Language:**
@@ -208,15 +177,56 @@ This folder contains:
 ├── data/
 │   └── Telco-Customer-Churn.csv
 ├── scripts/
-│   └── churn_analysis.R
+│   └── Telco customer churn prediction.Rmd
 ├── models/
 │   └── final_model.rds
-├── reports/
-│   ├── ROC curve images
-│   ├── Feature importance plots
-│   ├── classification_report_*.txt
-│   ├── model_comparison.csv
-│   ├── high_risk_customers.csv
-│   └── README.md (auto-generated)
 └── README.md
 ```
+Here’s an updated, badge-friendly version of the sections you can directly add to your README:
+
+---
+
+## 🚀 Usage / How to Run
+
+![Run](https://img.shields.io/badge/Run-R-blue)
+
+**Clone the repository:**
+
+```bash
+git clone https://github.com/yourusername/customer-churn-prediction.git
+cd customer-churn-prediction
+```
+
+**Run the analysis:**
+
+1. Open `scripts/churn_analysis.R` in RStudio.
+2. Install required packages if not already installed:
+
+```r
+install.packages(c(
+  "tidyverse", "caret", "randomForest", "Boruta", 
+  "xgboost", "pROC", "vip", "janitor"
+))
+```
+
+3. Execute the script step by step or source it to reproduce the analysis and generate outputs.
+
+---
+
+## 🤝 Acknowledgments & References
+
+![Thanks](https://img.shields.io/badge/Acknowledgments-Community-yellow)
+
+* **Dataset Source:** [Kaggle Telco Customer Churn dataset](https://www.kaggle.com/blastchar/telco-customer-churn)
+* **SHAP Methodology:** Lundberg & Lee (2017)
+
+---
+
+## 📄 License
+
+![License](https://img.shields.io/badge/License-MIT-green)
+
+This project is licensed under the **MIT License** — see the LICENSE file for details.
+
+---
+
