@@ -110,37 +110,32 @@ The full model comparison table is exported to:
 
 ### **Top Performers (AUC on Test Set)**
 
-*(Values shown here are placeholders — your script writes the actual numbers)*
+| Model               | Test AUC | Notes                                |
+| ------------------- | -------- | ------------------------------------ |
+| Logistic Regression | 0.8471   | Best AUC + interpretable baseline    |
+| XGBoost             | 0.8446   | Strong performance, close second     |
+| Random Forest       | 0.8323   | Good performance, slightly lower AUC |
 
-| Model                  | Train AUC | Test AUC | Notes                        |
-| ---------------------- | --------- | -------- | ---------------------------- |
-| XGBoost                | 0.91      | 0.88     | Best generalization          |
-| Random Forest          | 0.93      | 0.85     | Strong but slightly overfits |
-| Logistic Regression    | 0.83      | 0.80     | Interpretable baseline       |
-| Logistic Regression CV | 0.84      | 0.81     | Balanced performance         |
-
-👉 **Final Model Selected:** *Model with highest Test AUC (XGBoost in most cases).*
+👉 **Final Model Selected:**
 
 ---
 
 ## **📊 Detailed Model Results**
 
-### ✔ Logistic Regression
+### ✔ Logistic Regression (Final Model)
+* Best overall Test AUC (0.8471)
+* Strong interpretability for churn drivers
+* Highlights influence of tenure, charges, contract type, and service features
 
-* Interpretable baseline model
-* Highlights influence of tenure, charges, and contract type
+### ✔ XGBoost
+* Second-best Test AUC (0.8446)
+* Strong predictive performance
+* Competitive alternative where nonlinear interactions matter
 
 ### ✔ Random Forest
-
-* High accuracy
-* Better at capturing nonlinear effects
-
-### ✔ XGBoost (Newly Added)
-
-* Best overall AUC
-* Strong predictive performance
-* More stable recall for churners
-
+* Test AUC of 0.8323
+* Captures nonlinear effects well
+* Slightly weaker AUC compared to Logistic Regression and XGBoost
 ---
 
 ## **📦 Tech Stack**
@@ -182,7 +177,6 @@ The full model comparison table is exported to:
 │   └── final_model.rds
 └── README.md
 ```
-Here’s an updated, badge-friendly version of the sections you can directly add to your README:
 
 ---
 
