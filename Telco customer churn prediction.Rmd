@@ -1,0 +1,524 @@
+---
+title: "Telco customer Churn Prediction"
+author: "Precious Ebu"
+date: "11/20/2025"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# core tidyverse + modelling tools
+
+library(tidyverse)
+library(psych)
+library(ggpubr)
+library(ggplot2)
+library(readr)
+library(stringr)
+library(lattice)
+library(caret)
+library(randomForest)
+library(Boruta)
+library(car)
+library(pROC)
+library(vip)
+library(xgboost)
+library(Matrix)
+
+```
+
+# ---- Load Data ----
+```{r}
+# Use a relative path if possible; update to your path
+
+data_path <- "C:\\Users\\hp\\OneDrive\\Documents\\Data Science\\Datasets\\Telcom Dataset - Copy.csv"
+
+telcom <- read_csv(data_path, na = c("", " ", "NA"))
+
+```
+
+```{r}
+# ----- Quick Inspect -----
+glimpse(telcom)
+summary(telcom)
+```
+
+# ---- Quick inspection of categorical values ----
+```{r}
+# Quick unique value checks — helps find inconsistent labels
+
+cat_cols <- c("gender","SeniorCitizen","Partner","Dependents","PhoneService","MultipleLines",
+"InternetService","OnlineSecurity","OnlineBackup","DeviceProtection","TechSupport",
+"StreamingTV","StreamingMovies","Contract","PaperlessBilling","PaymentMethod","Churn")
+
+# Only print unique values for existing columns
+
+cat_cols <- cat_cols[cat_cols %in% names(telcom)]
+
+sapply(telcom[cat_cols], function(x) unique(x) %>% head(10))
+
+```
+
+# ----- Data Cleaning & Type conversions -----
+
+```{r}
+# Convert known categorical columns to factors (preserve original names like in your dataset)
+
+for (col in intersect(cat_cols, names(telcom))) {
+telcom[[col]] <- as.factor(telcom[[col]])
+}
+
+# Ensure numeric columns are numeric
+
+telcom$tenure <- as.integer(telcom$tenure)
+telcom$MonthlyCharges <- as.numeric(telcom$MonthlyCharges)
+
+# Handle TotalCharges safely: only parse/convert if it's character like common telco CSVs
+
+if ("TotalCharges" %in% names(telcom)) {
+if (!is.numeric(telcom$TotalCharges)) {
+telcom$TotalCharges <- parse_number(as.character(telcom$TotalCharges))
+} else {
+telcom$TotalCharges <- as.numeric(telcom$TotalCharges)
+}
+}
+
+# Quick checks
+
+glimpse(telcom)
+colSums(is.na(telcom))
+
+```
+
+
+# ---- Basic cleaning (fix known inconsistencies) ----
+
+```{r}
+# Fix common inconsistent strings (case and phrase variations)
+
+telcom <- telcom %>%
+mutate(
+InternetService = ifelse(is.na(InternetService), "No", as.character(InternetService)),
+InternetService = str_replace_all(InternetService, regex("dsl", ignore_case = TRUE), "DSL"),
+Contract = str_replace_all(as.character(Contract), regex("2 year|2 years", ignore_case = TRUE), "Two year"),
+PaymentMethod = str_replace_all(as.character(PaymentMethod), "Electronic_check", "Electronic check"),
+OnlineSecurity = str_replace_all(as.character(OnlineSecurity), regex("NO|No Internet Service", ignore_case = TRUE), "No"),
+OnlineBackup = str_replace_all(as.character(OnlineBackup), regex("NO", ignore_case = TRUE), "No")
+)
+
+# Re-factor updated columns (only necessary ones)
+
+telcom <- telcom %>%
+mutate(
+InternetService = as.factor(InternetService),
+Contract = as.factor(Contract),
+PaymentMethod = as.factor(PaymentMethod),
+OnlineSecurity = as.factor(OnlineSecurity),
+OnlineBackup = as.factor(OnlineBackup)
+)
+
+```
+
+# --- Missing value handling (targeted and documented) ---
+```{r}
+# Examine missingness
+
+colSums(is.na(telcom))
+```
+
+```{r}
+# Replace remaining numeric NAs with median
+num_vars <- telcom %>% select(where(is.numeric)) %>% names()
+for (nv in num_vars) {
+  med <- median(telcom[[nv]], na.rm = TRUE)
+  telcom[[nv]][is.na(telcom[[nv]])] <- med
+}
+```
+
+
+```{r}
+# Replace factor NAs with mode
+mode_replace <- function(x){
+  ux <- unique(x[!is.na(x)])
+  ux[which.max(tabulate(match(x, ux)))]
+}
+fac_vars <- telcom %>% select(where(is.factor)) %>% names()
+for (fv in fac_vars) {
+  telcom[[fv]][is.na(telcom[[fv]])] <- mode_replace(telcom[[fv]])
+}
+
+colSums(is.na(telcom)) #confirm replacement of missing values
+```
+
+
+# --- Outlier handling ---
+```{r}
+
+# detect extreme tenure values and cap them at reasonable upper bound (99th percentile)
+
+if ("tenure" %in% names(telcom)) {
+q99 <- quantile(telcom$tenure, 0.99, na.rm = TRUE)
+telcom$tenure <- ifelse(telcom$tenure > q99, round(q99), telcom$tenure)
+}
+boxplot(telcom$tenure, main = "Tenure after capping")
+
+```
+
+# ----- Feature Engineering -----
+
+```{r}
+# Compute TotalChargesCal; also create avg monthly charge and tenure buckets
+
+telcom <- telcom %>%
+mutate(
+TotalChargesCal = tenure * MonthlyCharges,                 # same idea you had
+AvgMonthlyCharge = ifelse(tenure > 0, TotalCharges / tenure, MonthlyCharges),
+TenureGroup = cut(tenure,
+breaks = c(-1, 6, 12, 24, 48, Inf),
+labels = c("0-6","7-12","13-24","25-48","49+"),
+right = TRUE)
+) %>%
+mutate(TenureGroup = factor(TenureGroup, levels = c("0-6","7-12","13-24","25-48","49+")))
+
+```
+
+# ----- EDA -----
+
+```{r}
+# Churn proportion
+
+telcom %>% count(Churn) %>% mutate(pct = n / sum(n) * 100)
+
+#,Plots: churn by tenure and monthly charges
+
+p1 <- ggplot(telcom, aes(x = tenure, fill = Churn)) +
+geom_histogram(binwidth = 1.5) + labs(title = "Churn by Tenure (months)")
+
+p2 <- ggplot(telcom, aes(x = MonthlyCharges, fill = Churn)) +
+geom_histogram(binwidth = 2) + labs(title = "Churn by Monthly Charges")
+
+# Print figures (for Rmd)
+
+print(p1)
+print(p2)
+```
+
+
+```{r}
+# Bar plots for selected categorical variables (loop)
+
+vars <- c("Partner","Dependents","InternetService","Contract","PaymentMethod")
+for (v in vars[vars %in% names(telcom)]) {
+print(
+ggplot(telcom, aes_string(x = v, fill = "Churn")) +
+geom_bar(position = "stack") +
+theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+labs(title = paste("Churn by", v))
+)
+}
+
+```
+
+
+```{r}
+# Correlations (numeric)
+num_cor <- cor(telcom %>% select(where(is.numeric)))
+```
+
+
+# --- Prepare data for modeling — stratified split ---
+
+```{r}
+# ----- Train/Test Split (stratified) -----
+set.seed(1500)
+
+# Use caret's createDataPartition to stratify by Churn (preserve class distribution)
+
+if (!"Churn" %in% names(telcom)) stop("Churn column missing")
+
+train_idx <- createDataPartition(telcom$Churn, p = 0.75, list = FALSE)
+train_data <- telcom[train_idx, ]
+test_data  <- telcom[-train_idx, ]
+
+# Check proportions
+
+prop.table(table(train_data$Churn))
+prop.table(table(test_data$Churn))
+
+```
+
+# --- Feature selection exploratory (Boruta) ---
+
+```{r}
+# Run Boruta on train set to get a sense of important features 
+
+set.seed(42)
+boruta_output <- Boruta(Churn ~ ., data = train_data %>% select(-customerID), doTrace = 0)
+print(boruta_output)
+plot(boruta_output, las = 2, cex.axis = 0.6)
+
+```
+
+# --- Random Forest — training & evaluation ---
+```{r}
+# Ensure Churn factor levels have "No"/"Yes" in this order for caret's twoClassSummary
+
+train_data$Churn <- factor(train_data$Churn, levels = c("No","Yes"))
+test_data$Churn  <- factor(test_data$Churn, levels = c("No","Yes"))
+
+# caret train control (repeated cv)
+
+ctrl <- trainControl(method = "repeatedcv",
+number = 5,
+repeats = 3,
+classProbs = TRUE,
+summaryFunction = twoClassSummary,
+savePredictions = "final",
+verboseIter = FALSE)
+
+# tune grid for random forest (mtry)
+
+mtry_grid <- expand.grid(mtry = c(2, 4, 6, 8))
+
+set.seed(42)
+rf_model <- train(Churn ~ Partner + Dependents + SeniorCitizen + tenure + MultipleLines +
+InternetService + OnlineSecurity + OnlineBackup + DeviceProtection +
+TechSupport + Contract + StreamingMovies + StreamingTV + PaperlessBilling +
+PaymentMethod + MonthlyCharges + TotalChargesCal + AvgMonthlyCharge + TenureGroup,
+data = train_data,
+method = "rf",
+metric = "ROC",
+tuneGrid = mtry_grid,
+trControl = ctrl,
+importance = TRUE,
+ntree = 500)
+
+rf_model
+
+```
+
+
+```{r}
+# Evaluate RF on test set
+
+rf_probs <- predict(rf_model, test_data, type = "prob")[, "Yes"]
+rf_pred  <- factor(ifelse(rf_probs > 0.5, "Yes", "No"), levels = c("No","Yes"))
+
+conf_rf <- confusionMatrix(rf_pred, test_data$Churn, positive = "Yes")
+conf_rf
+
+# ROC / AUC
+
+roc_rf <- roc(response = test_data$Churn, predictor = rf_probs, levels = c("No","Yes"))
+auc_rf <- auc(roc_rf)
+auc_rf
+plot(roc_rf, main = paste("Random Forest ROC — AUC:", round(auc_rf, 3)))
+
+```
+
+```{r}
+# Variable importance (caret/vip)
+
+vip::vip(rf_model$finalModel, num_features = 15) + ggtitle("RF - Variable Importance (finalModel)")
+
+```
+
+# ----- Logistic Regression (glm) -----
+
+```{r}
+# Fit a full logistic regression and use stepwise selection (AIC) to find a candidate model
+
+glm_full <- glm(Churn ~ ., data = train_data %>% select(-customerID), family = "binomial")
+glm_step <- step(glm_full, direction = "both", trace = FALSE)
+
+summary(glm_step)
+
+# Show selected formula
+
+formula(glm_step)
+```
+
+
+```{r}
+# Train the selected glm using caret with repeated CV for better generalization
+
+set.seed(42)
+log_ctrl <- trainControl(method = "repeatedcv",
+number = 5,
+repeats = 3,
+classProbs = TRUE,
+summaryFunction = twoClassSummary)
+
+log_model <- train(formula(glm_step), data = train_data,
+method = "glm",
+family = "binomial",
+metric = "ROC",
+trControl = log_ctrl)
+
+log_model
+
+```
+
+```{r}
+# Evaluate logistic on test set
+
+log_probs <- predict(log_model, test_data, type = "prob")[, "Yes"]
+log_pred  <- factor(ifelse(log_probs > 0.5, "Yes", "No"), levels = c("No","Yes"))
+
+conf_log <- confusionMatrix(log_pred, test_data$Churn, positive = "Yes")
+conf_log
+
+roc_log <- roc(response = test_data$Churn, predictor = log_probs, levels = c("No","Yes"))
+auc_log <- auc(roc_log)
+auc_log
+plot(roc_log, main = paste("Logistic Regression ROC — AUC:", round(auc_log, 3)))
+
+```
+
+# ---- XGBoost Model----
+
+```{r}
+# --- Create consistent matrices for XGBoost ---
+
+# 1. Build training matrix
+train_matrix <- model.matrix(Churn ~ . - 1, data = train_data)
+
+# 2. Build test matrix (raw)
+test_matrix_raw <- model.matrix(Churn ~ . - 1, data = test_data)
+
+# 3. Add missing columns to test
+missing_cols <- setdiff(colnames(train_matrix), colnames(test_matrix_raw))
+for (mc in missing_cols) {
+  test_matrix_raw <- cbind(test_matrix_raw, rep(0, nrow(test_matrix_raw)))
+  colnames(test_matrix_raw)[ncol(test_matrix_raw)] <- mc
+}
+
+# 4. Align test matrix EXACTLY to training
+test_matrix <- test_matrix_raw[, colnames(train_matrix)]
+
+# --- Labels ---
+train_label <- ifelse(train_data$Churn == "Yes", 1, 0)
+test_label  <- ifelse(test_data$Churn == "Yes", 1, 0)
+```
+
+
+```{r}
+# --- Convert to DMatrix ---
+dtrain <- xgb.DMatrix(data = train_matrix, label = train_label)
+dtest  <- xgb.DMatrix(data = test_matrix,  label = test_label)
+```
+
+
+```{r}
+# --- XGBoost Parameters ---
+params <- list(
+  booster = "gbtree",
+  objective = "binary:logistic",
+  eval_metric = "auc",
+  eta = 0.05,
+  max_depth = 6,
+  subsample = 0.8,
+  colsample_bytree = 0.8
+)
+```
+
+
+```{r}
+# --- Train XGBoost Model ---
+set.seed(42)
+xgb_model <- xgb.train(
+  params = params,
+  data = dtrain,
+  nrounds = 300,
+  watchlist = list(train = dtrain, test = dtest),
+  verbose = 0
+)
+```
+
+
+```{r}
+# --- Predictions ---
+xgb_pred_prob <- predict(xgb_model, dtest)
+xgb_pred_class <- ifelse(xgb_pred_prob > 0.5, "Yes", "No")
+xgb_pred_class <- factor(xgb_pred_class, levels = c("No", "Yes"))
+```
+
+
+```{r}
+# --- Confusion Matrix ---
+xgb_conf_mat <- caret::confusionMatrix(
+  xgb_pred_class,
+  test_data$Churn,
+  positive = "Yes"
+)
+xgb_conf_mat
+```
+
+
+```{r}
+# --- ROC / AUC ---
+xgb_roc <- roc(test_label, xgb_pred_prob)
+auc_xgb <- auc(xgb_roc)
+auc_xgb
+plot(xgb_roc, main = paste("XGBoost ROC Curve — AUC:", round(auc_xgb, 3)))
+```
+
+
+```{r}
+# --- XGBoost Feature Importance ---
+xgb_imp <- xgb.importance(model = xgb_model, feature_names = colnames(train_matrix))
+xgb.plot.importance(xgb_imp, top_n = 20)
+```
+
+
+```{r}
+# Save AUC for comparison section
+xgb_test_auc <- auc_xgb
+
+```
+
+
+# ---- XGBoost ROC Curve ---
+```{r}
+xgb_roc <- roc(response = test_data$Churn, predictor = xgb_pred_prob, levels = c("No","Yes"))
+
+```
+
+# --- Compare models and summary metrics ---
+```{r}
+# ---- Compare Models by Test AUC ----
+
+model_results <- tibble(
+  Model = c("Logistic Regression", "Random Forest", "XGBoost"),
+  Test_AUC = c(auc_log, auc_rf, auc(xgb_roc))
+)
+
+model_results <- model_results %>% arrange(desc(Test_AUC))
+model_results
+
+```
+
+# --- Final Model Selection ---
+```{r}
+best_model <- model_results$Model[1]
+
+if (best_model == "Random Forest") {
+  final_model <- rf_model
+  final_probs <- rf_probs
+} else if (best_model == "Logistic Regression") {
+  final_model <- log_probs
+  final_probs <- log_probs
+} else {
+  final_model <- xgb_model
+  final_probs <- xgb_pred_prob
+}
+
+best_model
+
+```
+
